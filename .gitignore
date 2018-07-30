@@ -57,3 +57,8 @@ $RECYCLE.BIN/
 
 # Windows shortcuts
 *.lnk
+
+# custom
+.idea/
+__pycache__/
+*.pyc

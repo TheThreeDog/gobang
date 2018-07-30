@@ -1,0 +1,13 @@
+F:\新建程序\VB五子棋\obj\x86\Debug\VB五子棋.Form1.resources
+F:\新建程序\VB五子棋\obj\x86\Debug\VB五子棋.Resources.resources
+F:\新建程序\VB五子棋\obj\x86\Debug\VB五子棋.vbproj.GenerateResource.Cache
+F:\新建程序\VB五子棋\bin\Debug\VB五子棋.exe
+F:\新建程序\VB五子棋\bin\Debug\VB五子棋.pdb
+F:\新建程序\VB五子棋\bin\Debug\VB五子棋.xml
+F:\新建程序\VB五子棋\obj\x86\Debug\VB五子棋.exe
+F:\新建程序\VB五子棋\obj\x86\Debug\VB五子棋.xml
+F:\新建程序\VB五子棋\obj\x86\Debug\VB五子棋.pdb
+F:\新建程序\VB五子棋\obj\x86\Debug\VB五子棋.人机对战.resources
+F:\新建程序\VB五子棋\obj\x86\Debug\VB五子棋.双人对战.resources
+F:\新建程序\VB五子棋\obj\x86\Debug\VB五子棋.网络对战.resources
+F:\新建程序\VB五子棋\obj\x86\Debug\VB五子棋.网络设置.resources

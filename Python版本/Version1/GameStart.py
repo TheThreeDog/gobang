@@ -11,24 +11,9 @@ from PyQt5.QtWidgets import QApplication,QWidget
 from PyQt5.QtGui import QIcon,QPalette,QBrush,QPixmap,QCloseEvent
 from PyQt5.QtCore import pyqtSignal
 
-
-class SinglePlayer(QWidget):
-    def __init__(self,parent=None):
-        super().__init__(parent)
-
-    def closeEvent(self, a0: QCloseEvent):
-        sys.exit(app.exec_())
-
-
-class DoublePlayer(QWidget):
-    def __init__(self,parent=None):
-        super().__init__(parent)
-
-
-class NetworkPlayer(QWidget):
-    def __init__(self,parent=None):
-        super().__init__(parent)
-
+from SinglePlayer import SinglePlayer
+from DoublePlayer import DoublePlayer
+from NetworkPlayer import NetworkPlayer
 
 class MainWindow(QWidget):
     def __init__(self,parent=None):
@@ -59,25 +44,31 @@ class MainWindow(QWidget):
         self.network_button.click_signal.connect(self.network_player)
         self.game_window = None
 
-
     def single_player(self):
         self.close()
         self.game_window = SinglePlayer()
+        self.game_window.exitSignal.connect(self.game_over) # 游戏结束
+        self.game_window.backSignal.connect(self.show) # 游戏
         self.game_window.show()
 
-
-
     def double_player(self):
-        # self.close()
-        w = DoublePlayer()
-        w.show()
-
+        self.close()
+        self.game_window = DoublePlayer()
+        self.game_window.exitSignal.connect(self.game_over) # 游戏结束
+        self.game_window.backSignal.connect(self.show) # 游戏
+        self.game_window.show()
 
     def network_player(self):
-        # self.close()
-        w = NetworkPlayer()
-        w.show()
+        self.close()
+        self.game_window = NetworkPlayer()
+        self.game_window.exitSignal.connect(self.game_over) # 游戏结束
+        self.game_window.backSignal.connect(self.show) # 游戏
+        self.game_window.show()
 
+    def game_over(self):
+        sys.exit(app.exec_())
+
+app = None
 # 游戏运行的主逻辑
 if __name__ == '__main__':
     app = QApplication(sys.argv)

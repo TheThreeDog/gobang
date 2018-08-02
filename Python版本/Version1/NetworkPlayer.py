@@ -7,7 +7,7 @@ import sys
 from PyQt5.QtWidgets import QWidget
 from PyQt5.QtGui import QCloseEvent
 
-from BasePlayer import BasePlayer
+from Base import BasePlayer
 
 
 class NetworkPlayer(BasePlayer):

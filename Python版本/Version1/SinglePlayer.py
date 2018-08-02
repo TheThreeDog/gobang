@@ -2,7 +2,7 @@
 __author__ = 'Threedog'
 __Date__ = '2018/7/30 20:59'
 
-from BasePlayer import BasePlayer
+from Base import BasePlayer
 from PyQt5.QtWidgets import QWidget
 from PyQt5.QtGui import QCloseEvent
 from PyQt5.QtCore import pyqtSignal

@@ -11,6 +11,18 @@ from TDWidgets import TDPushButton
 from TDWidgets import InvailidArguementsException
 
 
+'''
+棋盘信息：
+    棋盘左上角坐标：（50,50）
+    棋盘格子大小：（30*30）
+    棋盘线数量：（19*19）
+'''
+
+chessboard = [[None for i in range(0,19)] for j in range(0,19)]
+# 生成19*19的二维数组，全部初始化为None，表示没有棋子
+# 注意不能使用 chessboard = [[None]*19]*19 来生成，会产生浅拷贝的问题
+
+
 class BasePlayer(QWidget):
     '''
     游戏对战窗体的基类，单人游戏，双人游戏和网络对战都是继承自这个类，这个类中实现并加载了了所有公共的控件
@@ -56,6 +68,9 @@ class BasePlayer(QWidget):
 
 
 class Chessman(QLabel):
+    '''
+    棋子类
+    '''
     def __init__(self,color,parent = None):
         super().__init__(parent=parent)
         self.pic = None
@@ -63,13 +78,97 @@ class Chessman(QLabel):
         if color == 'w': # 白棋
             self.pic = QPixmap("source/白子.png")
         elif color == 'b': # 黑棋
-            self.pic = QPixmap("source/黑子.jpg")
+            self.pic = QPixmap("source/黑子.png")
         else :
             raise InvailidArguementsException("构造棋子时的参数错误，请传入'b'（黑棋）或者'w'（白棋）")
-        print(self.pic.size().width())
         self.setFixedSize(self.pic.size())
         self.setPixmap(self.pic)
 
     def move(self, a0: QtCore.QPoint):
-        # 这个操作相当于修改了棋子的锚点，将棋子的中心移动到相应位置
-        super().move(a0.x()-self.pic.width()/2,a0.y()-self.pic.height()/2)
+        # 通过点击点的位置，定位到棋盘的相交点上
+        x = a0.x()
+        y = a0.y()
+        if (x - 50) % 30 <= 15:# 对三十求余小于等于15，落子在左半边的交线上
+            x = (x - 50)//30*30 # 整除三十再乘以三十，目的是过滤掉除以三十的余数，使其正好落在标线上
+        else :
+            x = (x - 50)//30*30 + 30  # 对三十求余大于15，落子在右半边的交线上
+        if (y - 50) % 30 <= 15: # 对三十求余小于等于15，落子在上半边的交线上
+            y = (y - 50) // 30 * 30 # 整除三十再乘以三十，目的是过滤掉除以三十的余数，使其正好落在标线上
+        else :
+            y = (y - 50)//30 * 30 + 30 # 对三十求余大于15，落子在下半边的交线上
+
+        #最后横纵坐标各减去图片的一般，并且各加上50恢复原来的坐标
+        x = x - self.pic.width()/2 + 50
+        y = y - self.pic.height()/2 +50
+        super().move(x,y)
+
+
+def trans_pos(a0: QtCore.QPoint):
+    # 转化坐标，将像素坐标转化为棋盘坐标
+    x = a0.x()
+    y = a0.y()
+    if (x - 50) % 30 <= 15:
+        x = (x - 50) // 30
+    else:
+        x = (x - 50) // 30 + 1
+    if (y - 50) % 30 <= 15:
+        y = (y - 50) // 30
+    else:
+        y = (y - 50) // 30 + 1
+
+    return (x,y)
+
+
+def is_win(chessboard):
+    '''
+    判断是否已经有人胜出
+    :return: 黑子胜返回'b'，白子胜返回'w',没人胜出返回False
+    '''
+    for j in range(0,19-4): # 注意这里不-4会越界
+        for i in range(0,19-4):
+            if chessboard[i][j] is not None:
+                c = chessboard[i][j].color
+                # 判断右、右下、下、左下四个方向是否构成五子连珠，如果构成了，就可以。
+                # 右
+                if chessboard[i+1][j] is not None:
+                    if chessboard[i+1][j].color == c:
+                        if chessboard[i+2][j] is not None:
+                            if chessboard[i+2][j].color == c:
+                                if chessboard[i+3][j] is not None:
+                                    if chessboard[i+3][j].color == c:
+                                        if chessboard[i+4][j] is not None:
+                                            if chessboard[i+4][j].color == c:
+                                                return c
+                # 右下
+                if chessboard[i+1][j+1] is not None:
+                    if chessboard[i+1][j+1].color == c:
+                        if chessboard[i+2][j+2] is not None:
+                            if chessboard[i+2][j+2].color == c:
+                                if chessboard[i+3][j+3] is not None:
+                                    if chessboard[i+3][j+3].color == c:
+                                        if chessboard[i+4][j+4] is not None:
+                                            if chessboard[i+4][j+4].color == c:
+                                                return c
+                # 下
+                if chessboard[i][j+1] is not None:
+                    if chessboard[i][j+1].color == c:
+                        if chessboard[i][j+2] is not None:
+                            if chessboard[i][j+2].color == c:
+                                if chessboard[i][j+3] is not None:
+                                    if chessboard[i][j+3].color == c:
+                                        if chessboard[i][j+4] is not None:
+                                            if chessboard[i][j+4].color == c:
+                                                return c
+                # 左下
+                if chessboard[i-1][j+1] is not None:
+                    if chessboard[i-1][j+1].color == c:
+                        if chessboard[i-2][j+2] is not None:
+                            if chessboard[i-2][j+2].color == c:
+                                if chessboard[i-3][j+3] is not None:
+                                    if chessboard[i-3][j+3].color == c:
+                                        if chessboard[i-4][j+4] is not None:
+                                            if chessboard[i-4][j+4].color == c:
+                                                return c
+    # 所有的都不成立，返回False
+    return False
+

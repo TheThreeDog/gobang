@@ -5,7 +5,7 @@ __Date__ = '2018/7/30 20:59'
 from Base import BasePlayer
 from PyQt5.QtWidgets import QWidget,QLabel
 from PyQt5.QtGui import QCloseEvent,QPixmap,QMouseEvent
-from PyQt5.QtCore import pyqtSignal
+from PyQt5.QtCore import pyqtSignal,QPoint
 
 from Base import BasePlayer,Chessman,is_win,trans_pos
 import Base
@@ -125,20 +125,187 @@ class SinglePlayer(BasePlayer):
         电脑自动执行落子操作
         :return: 自动落子
         '''
+        # 找到能下棋的空位置中，假设电脑和人下在此处，得到分数中最大值
+
         score_c = [[0 for i in range(0,19)] for i in range(0,19)]
         score_p = [[0 for i in range(0,19)] for i in range(0,19)]
+
+        # 计算所有的分数
+        for j in range(0,19):
+            for i in range(0,19):
+                if chessboard[i][j] is None:
+                    # 如果此处为空 , 计算此处分数,分别记下落黑子和落白子不同的分数
+                    chessboard[i][j] = Chessman('b',parent=self)
+                    score_c[i][j] += self.score(i, j, 'b')
+                    chessboard[i][j] = Chessman('w',parent=self)
+                    score_p[i][j] += self.score(i, j, 'w')
+                    chessboard[i][j].close()
+                    chessboard[i][j] = None
+
+        # 为便于计算，将两个二维数组，转换成两个一位数组
+        r_score_c = []
+        for item in score_c:
+            r_score_c.extend(item)
+
+        r_score_p = []
+        for item in score_p:
+            r_score_p.extend(item)
+
+        # 最终分数，取两个数组中的最大值合并成一个数组
+        result = [max(a,b) for a,b in zip(r_score_c,r_score_p)]
+
+        for i in range(len(result)):
+            if i == 0:
+                print(result[i],end=' ')
+                continue
+            if i % 19 == 0 :
+                print('')
+            print(result[i],end=' ')
+
+
+        print("\n-----------------")
+
+
+        # 取最大值点的下标
+        chess_index = result.index(max(result))
+        # 通过下标计算出位置并落子
+        x = chess_index // 19
+        y = chess_index % 19
+
+        self.chess = Chessman(self.color, self)
+        self.chess.move(QPoint(y*30+50,x*30+50))
+        self.chess.show()
+        self.change_color()
+        chessboard[x][y] = self.chess
+        history.append((x, y, self.chess.color))
+
+        # 每次落子后，都判断一下胜负
+        res = is_win(chessboard)
+        if res:
+            self.win(res)  # 通过颜色，显示胜利的图片
+            return None
 
     def score(self,x,y,color):
         '''
         计分函数
-        :return:，返回此坐标点落子所得的分数。
+        :return:，返回(x,y)坐标点落color颜色的子所得的分数。
         可以得到的分数
         '''
+        blank_score = [0,0,0,0] # 四个方向空白点分数
+        chess_score = [0,0,0,0] # 四个方向同色点分数
+
+        # 右方向
         for i in range(x,x+5):
             if i >= 19:
                 break
             if chessboard[i][y] is not None:
+                if chessboard[i][y].color == color:# 如果是同色点，同色点分数加一
+                    chess_score[0] += 1
+                    # 朝一个方向执行，每次遇到相同颜色的都加1分
+            else:
+                # 目标点附近的点为空的，记录空白点数量
+                blank_score[0] += 1
+                break
+
+        # 左方向
+        for i in range(x-1,x-5,-1):
+            if i <= 0 :
+                break
+            if chessboard[i][y] is not None:
                 if chessboard[i][y].color == color:
-                    pass
+                    chess_score[0] += 1
+            else:
+                blank_score[0] += 1
+                break
+
+        # 下方向
+        for j in range(y,y+5):
+            if j >= 19 :
+                break
+            if chessboard[x][j] is not None:
+                if chessboard[x][j].color == color:
+                    chess_score[1] += 1
+            else :
+                blank_score[1] += 1
+                break
+
+        # 上方向
+        for j in range(y-1,y-5,-1):
+            if j <= 0:
+                break
+            if chessboard[x][j] is not None:
+                if chessboard[x][j].color == color:
+                    chess_score[1] += 1
+            else:
+                blank_score[1] += 1
+                break
+
+        # 右下
+        j = y
+        for i in range(x,x+5):
+            if i >= 19 or j >= 19:
+                break
+            if chessboard[i][j] is not None:
+                if chessboard[i][j].color == color:
+                    chess_score[2] += 1
+            else:
+                blank_score[2] += 1
+                break
+            j += 1
+
+        # 左上
+        j = y
+        for i in range(x-1, x-5, -1):
+            if i <= 0 or j <= 0 :
+                break
+            if chessboard[i][j] is not None:
+                if chessboard[i][j].color == color:
+                    chess_score[2] += 1
+            else:
+                blank_score[2] += 1
+                break
+            j -= 1
+
+        # 左下
+        j = y
+        for i in range(x-1,x-5,-1):
+            if i <= 0 or j >= 19:
+                break
+            if chessboard[i][j] is not None:
+                if chessboard[i][j].color == color:
+                    chess_score[3] += 1
+            else :
+                blank_score[3] += 1
+                break
+            j += 1
+
+        # 右上
+        j = y
+        for i in range(x,x+5):
+            if i >= 19 or j <= 0:
+                break
+            if chessboard[i][j] is not None:
+                if chessboard[i][j].color == color:
+                    chess_score[3] += 1
+            else:
+                blank_score[3] += 1
+                break
+            j -= 1
+
+        # 计算总分
+        for score in chess_score:
+            if score > 4: # 如果有某个方向超过4，则在此处落子形成五子连珠
+                return 100 # 直接返回100分的最高分
+
+        for i in range(0,len(blank_score)):
+            if blank_score[i] == 0:
+                # b[]等于零说明在这空白点的附近的空白点的附近同样没有同色棋子，故分数减20
+                blank_score[i] -= 20
+        # 结果，将两个列表依次相加。
+        result = [a+b for a,b in zip(chess_score,blank_score)]
+        # 返回最高分值
+        return max(result)
+
+
 
 

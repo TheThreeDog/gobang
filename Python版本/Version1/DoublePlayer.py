@@ -4,12 +4,16 @@ __Date__ = '2018/7/30 20:59'
 
 from PyQt5.QtWidgets import QLabel
 from PyQt5.QtGui import QMouseEvent,QPixmap
+import pygame
 
 from Base import BasePlayer,Chessman,is_win,trans_pos
 import Base
 chessboard = Base.chessboard
 # 列表记录走棋坐标，用于悔棋操作
 history = []
+# 加载声音
+pygame.mixer.init()
+pygame.mixer.music.load("source/luozisheng.wav")
 
 
 class DoublePlayer(BasePlayer):
@@ -60,6 +64,7 @@ class DoublePlayer(BasePlayer):
             self.logo_move()
             self.chess.show()
             self.change_color()
+            pygame.mixer.music.play()
 
             # 在棋盘的对应位置放上棋子
             chessboard[pos[1]][pos[0]] = self.chess

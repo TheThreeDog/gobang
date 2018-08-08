@@ -2,16 +2,18 @@
 __author__ = 'Threedog'
 __Date__ = '2018/7/30 20:59'
 
-from Base import BasePlayer
 from PyQt5.QtWidgets import QWidget,QLabel
 from PyQt5.QtGui import QCloseEvent,QPixmap,QMouseEvent
 from PyQt5.QtCore import pyqtSignal,QPoint
+import pygame
 
 from Base import BasePlayer,Chessman,is_win,trans_pos
 import Base
 chessboard = Base.chessboard
 # 列表记录走棋坐标，用于悔棋操作
 history = []
+pygame.mixer.init()
+pygame.mixer.music.load("source/luozisheng.wav")
 
 
 class SinglePlayer(BasePlayer):
@@ -65,6 +67,7 @@ class SinglePlayer(BasePlayer):
             self.logo_move()
             self.chess.show()
             self.change_color()
+            pygame.mixer.music.play()
 
             # 在棋盘的对应位置放上棋子
             chessboard[pos[1]][pos[0]] = self.chess
@@ -126,6 +129,7 @@ class SinglePlayer(BasePlayer):
         '''
         if self.is_over:
             return None  # 如果游戏已经结束了
+        self.change_color()
         self.win(self.color)
 
     def auto_run(self):
@@ -173,6 +177,7 @@ class SinglePlayer(BasePlayer):
         self.chess.show()
         self.logo_move()
         self.change_color()
+        pygame.mixer.music.play()
         chessboard[x][y] = self.chess
         history.append((x, y, self.chess.color))
 

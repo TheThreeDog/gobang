@@ -22,7 +22,6 @@ chessboard = [[None for i in range(0,19)] for j in range(0,19)]
 # 生成19*19的二维数组，全部初始化为None，表示没有棋子
 # 注意不能使用 chessboard = [[None]*19]*19 来生成，会产生浅拷贝的问题
 
-
 class BasePlayer(QWidget):
     '''
     游戏对战窗体的基类，单人游戏，双人游戏和网络对战都是继承自这个类，这个类中实现并加载了了所有公共的控件
@@ -55,6 +54,13 @@ class BasePlayer(QWidget):
         self.renshu_button = TDPushButton(self, 'source/认输按钮_normal.png', 'source/认输按钮_hover.png','source/认输按钮_press.png', parent=self)
         self.renshu_button.move(640,380)
 
+        # 落棋标志
+        self.chess_pos = QLabel(self)
+        pic = QPixmap("source/标识.png")
+        self.chess_pos.setPixmap(pic)
+        self.chess_pos.setFixedSize(pic.size())
+        self.chess_pos.show()
+
 
     def closeEvent(self, a0: QCloseEvent):
         if self.is_exit: # 默认情况下，关闭窗体，退出游戏。如果点击返回按钮，则is_exit被设置为False，不触发此信号。
@@ -65,6 +71,9 @@ class BasePlayer(QWidget):
     def back(self):
         self.is_exit = False
         self.close()
+
+    def logo_move(self):
+        pass
 
 
 class Chessman(QLabel):

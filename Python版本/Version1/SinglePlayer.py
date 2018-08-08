@@ -31,6 +31,7 @@ class SinglePlayer(BasePlayer):
         self.huiqi_button.click_signal.connect(self.goback)
         self.renshu_button.click_signal.connect(self.lose)
         self.win_label = None
+        self.chess_pos.hide()  # 这个位置标识隐藏起来
 
     def win(self, color):
         '''
@@ -51,7 +52,7 @@ class SinglePlayer(BasePlayer):
         if self.is_over:  # 如果游戏已经结束，点击失效
             return
         # 如果点击在棋盘区域
-        if a0.x() >= 50 and a0.x() <= 50 + 30 * 19 and a0.y() >= 50 and a0.y() <= 50 + 30 * 19:
+        if a0.x() >= 50 and a0.x() <= 50 + 30 * 18 + 14 and a0.y() >= 50 and a0.y() <= 50 + 30 * 18 + 14:
 
             # 讲像素坐标转化成棋盘坐标，判断棋盘此位置是否为空
             pos = trans_pos(a0)
@@ -61,6 +62,7 @@ class SinglePlayer(BasePlayer):
             # 不为空，则生成棋子并显示
             self.chess = Chessman(self.color, self)
             self.chess.move(a0.pos())
+            self.logo_move()
             self.chess.show()
             self.change_color()
 
@@ -98,6 +100,7 @@ class SinglePlayer(BasePlayer):
             self.win_label.close()
             self.win_label = None
             self.is_over = False
+        self.chess_pos.hide()  # 这个位置标识隐藏起来
 
     def goback(self):
         '''
@@ -110,7 +113,12 @@ class SinglePlayer(BasePlayer):
         chess = history.pop(-1)
         chessboard[chess[0]][chess[1]].close()
         chessboard[chess[0]][chess[1]] = None
-        self.change_color()
+        # self.change_color()
+        chess = history.pop(-1)
+        chessboard[chess[0]][chess[1]].close()
+        chessboard[chess[0]][chess[1]] = None
+        # self.change_color()
+        self.chess_pos.hide()  # 这个位置标识隐藏起来
 
     def lose(self):
         '''
@@ -154,18 +162,6 @@ class SinglePlayer(BasePlayer):
         # 最终分数，取两个数组中的最大值合并成一个数组
         result = [max(a,b) for a,b in zip(r_score_c,r_score_p)]
 
-        for i in range(len(result)):
-            if i == 0:
-                print(result[i],end=' ')
-                continue
-            if i % 19 == 0 :
-                print('')
-            print(result[i],end=' ')
-
-
-        print("\n-----------------")
-
-
         # 取最大值点的下标
         chess_index = result.index(max(result))
         # 通过下标计算出位置并落子
@@ -175,6 +171,7 @@ class SinglePlayer(BasePlayer):
         self.chess = Chessman(self.color, self)
         self.chess.move(QPoint(y*30+50,x*30+50))
         self.chess.show()
+        self.logo_move()
         self.change_color()
         chessboard[x][y] = self.chess
         history.append((x, y, self.chess.color))
@@ -202,6 +199,8 @@ class SinglePlayer(BasePlayer):
                 if chessboard[i][y].color == color:# 如果是同色点，同色点分数加一
                     chess_score[0] += 1
                     # 朝一个方向执行，每次遇到相同颜色的都加1分
+                else :
+                    break
             else:
                 # 目标点附近的点为空的，记录空白点数量
                 blank_score[0] += 1
@@ -214,6 +213,8 @@ class SinglePlayer(BasePlayer):
             if chessboard[i][y] is not None:
                 if chessboard[i][y].color == color:
                     chess_score[0] += 1
+                else:
+                    break
             else:
                 blank_score[0] += 1
                 break
@@ -225,6 +226,8 @@ class SinglePlayer(BasePlayer):
             if chessboard[x][j] is not None:
                 if chessboard[x][j].color == color:
                     chess_score[1] += 1
+                else:
+                    break
             else :
                 blank_score[1] += 1
                 break
@@ -236,6 +239,8 @@ class SinglePlayer(BasePlayer):
             if chessboard[x][j] is not None:
                 if chessboard[x][j].color == color:
                     chess_score[1] += 1
+                else:
+                    break
             else:
                 blank_score[1] += 1
                 break
@@ -248,19 +253,23 @@ class SinglePlayer(BasePlayer):
             if chessboard[i][j] is not None:
                 if chessboard[i][j].color == color:
                     chess_score[2] += 1
+                else:
+                    break
             else:
                 blank_score[2] += 1
                 break
             j += 1
 
         # 左上
-        j = y
+        j = y - 1
         for i in range(x-1, x-5, -1):
             if i <= 0 or j <= 0 :
                 break
             if chessboard[i][j] is not None:
                 if chessboard[i][j].color == color:
                     chess_score[2] += 1
+                else:
+                    break
             else:
                 blank_score[2] += 1
                 break
@@ -268,25 +277,29 @@ class SinglePlayer(BasePlayer):
 
         # 左下
         j = y
-        for i in range(x-1,x-5,-1):
+        for i in range(x,x-5,-1):
             if i <= 0 or j >= 19:
                 break
             if chessboard[i][j] is not None:
                 if chessboard[i][j].color == color:
                     chess_score[3] += 1
+                else:
+                    break
             else :
                 blank_score[3] += 1
                 break
             j += 1
 
         # 右上
-        j = y
-        for i in range(x,x+5):
+        j = y - 1
+        for i in range(x+1,x+5):
             if i >= 19 or j <= 0:
                 break
             if chessboard[i][j] is not None:
                 if chessboard[i][j].color == color:
                     chess_score[3] += 1
+                else:
+                    break
             else:
                 blank_score[3] += 1
                 break
@@ -306,6 +319,7 @@ class SinglePlayer(BasePlayer):
         # 返回最高分值
         return max(result)
 
-
-
-
+    def logo_move(self):
+        self.chess_pos.show()
+        self.chess_pos.move(self.chess.pos())
+        self.chess_pos.raise_()

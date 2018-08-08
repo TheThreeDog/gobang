@@ -27,6 +27,7 @@ class DoublePlayer(BasePlayer):
         self.huiqi_button.click_signal.connect(self.goback)
         self.renshu_button.click_signal.connect(self.lose)
         self.win_label = None
+        self.chess_pos.hide()  # 这个位置标识隐藏起来
 
     def win(self,color):
         '''
@@ -47,8 +48,7 @@ class DoublePlayer(BasePlayer):
         if self.is_over: # 如果游戏已经结束，点击失效
             return
         # 如果点击在棋盘区域
-        if a0.x() >= 50 and a0.x() <= 50+30*19 and a0.y() >= 50 and a0.y() <= 50+30*19:
-
+        if a0.x() >= 50 and a0.x() <= 50+30*18+14 and a0.y() >= 50 and a0.y() <= 50+30*18+14:
             # 讲像素坐标转化成棋盘坐标，判断棋盘此位置是否为空
             pos = trans_pos(a0)
             if chessboard[pos[1]][pos[0]] is not None:
@@ -57,6 +57,7 @@ class DoublePlayer(BasePlayer):
             # 不为空，则生成棋子并显示
             self.chess = Chessman(self.color,self)
             self.chess.move(a0.pos())
+            self.logo_move()
             self.chess.show()
             self.change_color()
 
@@ -91,6 +92,7 @@ class DoublePlayer(BasePlayer):
             self.win_label.close()
             self.win_label = None
             self.is_over = False
+        self.chess_pos.hide() # 这个位置标识隐藏起来
 
     def goback(self):
         '''
@@ -104,7 +106,7 @@ class DoublePlayer(BasePlayer):
         chessboard[chess[0]][chess[1]].close()
         chessboard[chess[0]][chess[1]] = None
         self.change_color()
-
+        self.chess_pos.hide()  # 这个位置标识隐藏起来
 
     def lose(self):
         '''
@@ -114,4 +116,7 @@ class DoublePlayer(BasePlayer):
             return None # 如果游戏已经结束了
         self.win(self.color)
 
-
+    def logo_move(self):
+        self.chess_pos.show()
+        self.chess_pos.move(self.chess.pos())
+        self.chess_pos.raise_()

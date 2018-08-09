@@ -13,7 +13,7 @@ from PyQt5.QtCore import pyqtSignal
 
 from SinglePlayer import SinglePlayer
 from DoublePlayer import DoublePlayer
-from NetworkPlayer import NetworkPlayer
+from NetworkPlayer import NetworkPlayer,NetworkConfig
 
 class MainWindow(QWidget):
     def __init__(self,parent=None):
@@ -60,9 +60,7 @@ class MainWindow(QWidget):
 
     def network_player(self):
         self.close()
-        self.game_window = NetworkPlayer()
-        self.game_window.exitSignal.connect(self.game_over) # 游戏结束
-        self.game_window.backSignal.connect(self.show) # 游戏
+        self.game_window = NetworkConfig(main_window=self)
         self.game_window.show()
 
     def game_over(self):

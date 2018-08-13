@@ -134,51 +134,64 @@ def is_win(chessboard):
     判断是否已经有人胜出
     :return: 黑子胜返回'b'，白子胜返回'w',没人胜出返回False
     '''
-    for j in range(0,19-4): # 注意这里不-4会越界
-        for i in range(0,19-4):
+    for j in range(0,19): # 注意这里会出现数组越界的情况，我们在代码中直接pass掉
+        for i in range(0,19):
             if chessboard[i][j] is not None:
                 c = chessboard[i][j].color
                 # 判断右、右下、下、左下四个方向是否构成五子连珠，如果构成了，就可以。
                 # 右
-                if chessboard[i+1][j] is not None:
-                    if chessboard[i+1][j].color == c:
-                        if chessboard[i+2][j] is not None:
-                            if chessboard[i+2][j].color == c:
-                                if chessboard[i+3][j] is not None:
-                                    if chessboard[i+3][j].color == c:
-                                        if chessboard[i+4][j] is not None:
-                                            if chessboard[i+4][j].color == c:
-                                                return c
+                try:
+                    if chessboard[i+1][j] is not None:
+                        if chessboard[i+1][j].color == c:
+                            if chessboard[i+2][j] is not None:
+                                if chessboard[i+2][j].color == c:
+                                    if chessboard[i+3][j] is not None:
+                                        if chessboard[i+3][j].color == c:
+                                            if chessboard[i+4][j] is not None:
+                                                if chessboard[i+4][j].color == c:
+                                                    return c
+                except IndexError:
+                    pass
                 # 右下
-                if chessboard[i+1][j+1] is not None:
-                    if chessboard[i+1][j+1].color == c:
-                        if chessboard[i+2][j+2] is not None:
-                            if chessboard[i+2][j+2].color == c:
-                                if chessboard[i+3][j+3] is not None:
-                                    if chessboard[i+3][j+3].color == c:
-                                        if chessboard[i+4][j+4] is not None:
-                                            if chessboard[i+4][j+4].color == c:
-                                                return c
+                try:
+                    if chessboard[i+1][j+1] is not None:
+                        if chessboard[i+1][j+1].color == c:
+                            if chessboard[i+2][j+2] is not None:
+                                if chessboard[i+2][j+2].color == c:
+                                    if chessboard[i+3][j+3] is not None:
+                                        if chessboard[i+3][j+3].color == c:
+                                            if chessboard[i+4][j+4] is not None:
+                                                if chessboard[i+4][j+4].color == c:
+                                                    return c
+                except IndexError:
+                    pass
                 # 下
-                if chessboard[i][j+1] is not None:
-                    if chessboard[i][j+1].color == c:
-                        if chessboard[i][j+2] is not None:
-                            if chessboard[i][j+2].color == c:
-                                if chessboard[i][j+3] is not None:
-                                    if chessboard[i][j+3].color == c:
-                                        if chessboard[i][j+4] is not None:
-                                            if chessboard[i][j+4].color == c:
-                                                return c
+                try:
+                    if chessboard[i][j+1] is not None:
+                        if chessboard[i][j+1].color == c:
+                            if chessboard[i][j+2] is not None:
+                                if chessboard[i][j+2].color == c:
+                                    if chessboard[i][j+3] is not None:
+                                        if chessboard[i][j+3].color == c:
+                                            if chessboard[i][j+4] is not None:
+                                                if chessboard[i][j+4].color == c:
+                                                    return c
+                except IndexError:
+                    pass
                 # 左下
-                if chessboard[i-1][j+1] is not None:
-                    if chessboard[i-1][j+1].color == c:
-                        if chessboard[i-2][j+2] is not None:
-                            if chessboard[i-2][j+2].color == c:
-                                if chessboard[i-3][j+3] is not None:
-                                    if chessboard[i-3][j+3].color == c:
-                                        if chessboard[i-4][j+4] is not None:
-                                            if chessboard[i-4][j+4].color == c:
-                                                return c
+                try:
+                    if chessboard[i-1][j+1] is not None:
+                        if chessboard[i-1][j+1].color == c:
+                            if chessboard[i-2][j+2] is not None:
+                                if chessboard[i-2][j+2].color == c:
+                                    if chessboard[i-3][j+3] is not None:
+                                        if chessboard[i-3][j+3].color == c:
+                                            if chessboard[i-4][j+4] is not None:
+                                                if chessboard[i-4][j+4].color == c:
+                                                    return c
+                except IndexError:
+                    pass
+
     # 所有的都不成立，返回False
     return False
 

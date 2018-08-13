@@ -8,7 +8,7 @@ cgitb.enable( format = 'error')
 import sys
 from TDWidgets import TDPushButton
 from PyQt5.QtWidgets import QApplication,QWidget
-from PyQt5.QtGui import QIcon,QPalette,QBrush,QPixmap,QCloseEvent
+from PyQt5.QtGui import QIcon,QPalette,QBrush,QPixmap,QCloseEvent,QFont,QColor
 from PyQt5.QtCore import pyqtSignal
 
 from SinglePlayer import SinglePlayer
@@ -71,5 +71,12 @@ app = None
 if __name__ == '__main__':
     app = QApplication(sys.argv)
     w = MainWindow()
+    font = QFont()
+    font.setFamily("微软雅黑")
+    font.setPointSize(12)
+    # palette = QPalette()
+    # palette.setColor(QPalette.Text,QColor())
+    w.setFont(font)
     w.show()
+    # w.setPalette(palette)
     sys.exit(app.exec_())

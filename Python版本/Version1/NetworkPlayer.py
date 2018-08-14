@@ -9,6 +9,7 @@ import json
 from PyQt5.QtWidgets import QLabel,QMessageBox,QWidget,QLineEdit,QVBoxLayout,QHBoxLayout,QPushButton
 from PyQt5.QtGui import QMouseEvent,QPixmap,QIcon,QCloseEvent
 from PyQt5.QtCore import QPoint,pyqtSignal,Qt
+import pygame
 
 from Base import Chessman,is_win,trans_pos
 from Base import BasePlayer
@@ -18,6 +19,10 @@ import Base
 chessboard = Base.chessboard
 # 列表记录走棋坐标，用于悔棋操作
 history = []
+
+pygame.mixer.init()
+pygame.mixer.music.load("source/luozisheng.wav")
+sound = pygame.mixer.Sound("source/cuicu.wav")
 
 def recv_sockdata(the_socket):
     '''从网络接收数据'''
@@ -99,6 +104,7 @@ class NetworkPlayer(BasePlayer):
         super().__init__(parent)
         self.ip = None
         self.name = name
+
         self.label_statu = QLabel("游戏状态：",self)
         self.label_statu.resize(100,20)
         self.label_statuvalue = QLabel("等待连接",self)
@@ -154,19 +160,43 @@ class NetworkPlayer(BasePlayer):
                 else:
                     data = {"msg": "replay", "data": False, "type": "restart"}
                     self.tcp_socket.sendall((json.dumps(data) + " END").encode())
-                    self.label_statuvalue.setText("等待开始")
+                    self.label_statuvalue.setText("点击开始")
 
             if data['data'] == 'lose':
                 QMessageBox.information(self,"消息","对方认输")
                 if self.my_turn:
+
+                    self.win(color=self.color)
+                    # self.change_color()
+                else:
                     self.change_color()
                     self.win(color=self.color)
-                else:
-                    self.win(color=self.color)
             if data['data'] == 'goback':
-                pass
+                result = QMessageBox.information(self, "消息", "对方请求悔棋，是否同意？", QMessageBox.Yes | QMessageBox.No)
+                if result == QMessageBox.Yes:
+                    data = {"msg": "replay", "data": True, "type": "goback"}
+                    self.tcp_socket.sendall((json.dumps(data) + " END").encode())
+                    self.goback_func()
+                    # self.is_over = False
+                    if self.my_turn:
+                        self.label_statuvalue.setText("己方回合")
+                    else:
+                        self.label_statuvalue.setText("对方回合")
+                else:
+                    data = {"msg": "replay", "data": False, "type": "goback"}
+                    self.tcp_socket.sendall((json.dumps(data) + " END").encode())
+                    # self.label_statuvalue.setText("等待开始")
+
             if data['data'] == 'cuicu':
-                pass
+                print(self.is_connected)
+                if not self.is_connected:
+                    return
+                if self.is_over :
+                    return
+                print("cuicu")
+                sound.play()
+                # pygame.mixer.music.load("source/luozisheng.wav")
+
             if data['data'] == 'ready':
                 pass
             if data['data'] == 'exit':
@@ -187,6 +217,8 @@ class NetworkPlayer(BasePlayer):
             self.chess = Chessman(self.color, self)
             self.chess.move(QPoint(pos[0] * 30 + 50, pos[1] * 30 + 50))
             self.chess.show()
+            pygame.mixer.music.play() # 播放声音
+            self.logo_move()  # 移动小标
             self.change_color()
 
             # 在棋盘的对应位置放上棋子
@@ -201,15 +233,30 @@ class NetworkPlayer(BasePlayer):
             self.my_turn = True
             self.label_statuvalue.setText("己方回合")
         elif data['msg'] == 'replay':
-            if data['type'] == 'restart':
+            if data['type'] == 'restart': # 重开回执
                 if data['data'] == True:
                     self.restart_func()
                 else:
                     QMessageBox.information(self,"消息","对方拒绝了你的请求")
+                    self.label_statuvalue.setText("点击开始")
+                    return
                 if self.my_turn:
                     self.label_statuvalue.setText("己方回合")
                 else:
                     self.label_statuvalue.setText("对方回合")
+            if data['type'] == 'goback': # 悔棋回执
+
+                if data['data'] == True:
+                    self.is_over = False
+                    self.goback_func()
+                else:
+                    QMessageBox.information(self,'消息','对方拒绝了你的请求')
+                if self.my_turn:
+                    self.label_statuvalue.setText("己方回合")
+                else:
+                    self.label_statuvalue.setText("对方回合")
+                self.is_over = False
+
         elif data['msg'] == 'name':
             self.setWindowTitle('与 {} 对战中'.format(data['data']))
 
@@ -295,6 +342,8 @@ class NetworkPlayer(BasePlayer):
             self.chess = Chessman(self.color,self)
             self.chess.move(a0.pos())
             self.chess.show()
+            pygame.mixer.music.play()  # 播放声音
+            self.logo_move() # 移动小标
             self.change_color()
 
             # 在棋盘的对应位置放上棋子
@@ -330,17 +379,41 @@ class NetworkPlayer(BasePlayer):
         '''
         悔棋按钮
         '''
+        if self.my_turn is False:
+            return # 如果是对方回合，不能悔棋
+        if self.is_over:
+            return
         if not self.is_connected:
             return
         else :
             data = {"msg": "action", "data": "goback"}
             self.tcp_socket.sendall((json.dumps(data) + " END").encode())
             self.label_statuvalue.setText("请求悔棋")
+            self.is_over = True
+
+    def goback_func(self):
+        if self.is_over:
+            return None  # 如果游戏已经结束了
+        if len(history) == 0:
+            return None  # 没有落子，不能悔棋
+        chess = history.pop(-1)
+        chessboard[chess[0]][chess[1]].close()
+        chessboard[chess[0]][chess[1]] = None
+        # self.change_color()
+        if len(history) == 0:
+            return None  # 没有落子，不能悔棋
+        chess = history.pop(-1)
+        chessboard[chess[0]][chess[1]].close()
+        chessboard[chess[0]][chess[1]] = None
+        # self.change_color()
+        self.chess_pos.hide()  # 这个位置标识隐藏起来
 
     def lose(self):
         '''
         认输按钮
         '''
+        if self.is_over:
+            return
         if not self.is_connected:
             return
         else :
@@ -357,12 +430,21 @@ class NetworkPlayer(BasePlayer):
         '''
         催促按钮
         '''
+        if self.my_turn:
+            return
+        if self.is_over:
+            return
         if not self.is_connected:
             return
         else :
             data = {"msg": "action", "data": "cuicu"}
             self.tcp_socket.sendall((json.dumps(data) + " END").encode())
             # self.label_statuvalue.setText("请求(重新)开始")
+
+    def logo_move(self):
+        self.chess_pos.show()
+        self.chess_pos.move(self.chess.pos())
+        self.chess_pos.raise_()
 
 
 class NetworkClient(NetworkPlayer):
@@ -459,6 +541,7 @@ class NetworkServer(NetworkPlayer):
                 # 接受一个新连接:
                 sock, addr = self.tcpServer.accept()
                 self.label_statuvalue.setText("连接成功,\n点击开始")
+                # self.is_listening = False
                 self.tcp_socket = sock
                 # 连接成功后先向对方发送昵称信息
                 data = {"msg": "name", "data": self.name}

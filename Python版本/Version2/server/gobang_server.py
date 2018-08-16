@@ -16,12 +16,21 @@ def recv_sockdata(the_socket):
         data = the_socket.recv(1024).decode()
         if "END" in data:
             # 注意这里不去掉末尾的END，直接转发给另一端
-            total_data += data # [:data.index("END")]
+            total_data += data[:data.index("END")]
             break
         total_data += data
-    # print(total_data)
-    # print("-----------------")
     return total_data
+
+
+def get_player_by_name(name):
+    '''
+    通过名称获取用户
+    '''
+    for player in players:
+        if player.name == name:
+            return player
+
+    return False
 
 
 class Player(object):
@@ -30,26 +39,38 @@ class Player(object):
         self.name = name
         self.target_sock = None  # 联机对方的sock
         # 启动线程监听
-        threading.Thread(target=self.recv_data,args=(self.sock,)).start()
+        threading.Thread(target=self.recv_data).start()
 
-    def recv_data(self,sock):
-        self.is_connected = True  # 连接状态
-        print("start receiving data ...")
+    def deal_data(self,json_data):
+        '''数据处理'''
+        print("data in client: ", json_data)
+        if json_data['msg'] == '???':
+            pass
+        elif json_data['msg'] == "????":
+            pass
+
+    def recv_data(self):
         while True:
-            print("start receiving data ...")
             try:
-                res_data = recv_sockdata(sock)  # 本地收到数据
-                if self.target_sock is not None:
-                    self.target_sock.sendall(res_data)  # 发送给另一玩家
+                res_data = recv_sockdata(self.sock)     # 本地收到数据
+                json_data = json.dumps(res_data)        # 转成json
+                if json_data['target'] == 'player':     # 目标是玩家
+                    if self.target_sock is not None:
+                        self.target_sock.sendall((res_data+" END").encode())  # 发送给另一玩家
+                elif json_data['target'] == 'server':   # 目标是服务器
+                    self.deal_data(json_data)
+
             except (ConnectionAbortedError,ConnectionResetError):
-                print("对方离开游戏")
-                # QMessageBox.information(self,"提示","对方已经断开连接")
-                self.is_connected = False
-                # 连接断开
-                self.label_statuvalue.setText("对方断线,\n点击开始重试")
-                break
+                print("连接断开，玩家离开游戏")
+                if self in players :
+                    players.remove(self)
+                break  # 退出循环，线程结束
+
+            except json.JSONDecodeError:
+                print("数据解析错误")
+                print("Error Data:",res_data)
             # 在线程处理函数中不能直接进行界面的相关操作，所以用一个信号把数据发送出来
-            self.dataSignal.emit(data)
+            # self.dataSignal.emit(data)
             # self.deal_data(data,parent)
 
 
@@ -60,7 +81,7 @@ def start_listen(server_sock):
             # 接受一个新连接:
             sock, addr = server_sock.accept()
             # 给新连接发送当前的列表信息
-            data = {"player_list":[player.name for player in players]}
+            data = {"msg":"player_list","data":[player.name for player in players]}
             sock.sendall((json.dumps(data) + " END").encode())
             # 接收新连接的用户名，创建类并放入玩家列表
             dt = json.loads(sock.recv(1024).decode())
@@ -69,6 +90,11 @@ def start_listen(server_sock):
             name = "未命名"
             if dt['msg'] == 'name':
                 name = dt['data']
+                # 判断名字是否已经存在
+                if name in [p.name for p in players]:
+                    data = {"msg":"replay","data":"已经存在同名用户，请更换其他的用户名"}
+                    sock.sendall((json.dumps(data) + " END").encode())
+                    continue
             player = Player(sock,name)
             players.append(player)
 
@@ -89,6 +115,7 @@ if __name__ == "__main__":
 
     # 线程监听，等待连接
     threading.Thread(target=self.start_listen).start()
+
 
 class NetworkServer(NetworkPlayer):
     '''

@@ -16,6 +16,9 @@ from Base import BasePlayer
 
 from TDWidgets import TDPushButton
 import Base
+
+addr = ("127.0.0.1",3003)
+
 chessboard = Base.chessboard
 # 列表记录走棋坐标，用于悔棋操作
 history = []
@@ -24,17 +27,17 @@ pygame.mixer.init()
 pygame.mixer.music.load("source/luozisheng.wav")
 sound = pygame.mixer.Sound("source/cuicu.wav")
 
+
 def recv_sockdata(the_socket):
     '''从网络接收数据'''
     total_data = ""
     while True:
         data = the_socket.recv(1024).decode()
         if "END" in data:
+            # 注意这里不去掉末尾的END，直接转发给另一端
             total_data += data[:data.index("END")]
             break
         total_data += data
-    # print(total_data)
-    # print("-----------------")
     return total_data
 
 
@@ -48,6 +51,9 @@ class NetworkConfig(QWidget):
         self.setWindowTitle('网络配置')
         self.setWindowIcon(QIcon('source/icon.ico'))
         self.main_window = main_window
+        # 启动网络
+        self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.sock.connect(addr)
 
         # 显示自己的昵称
         self.layout_h = QHBoxLayout()  # 水平布局1
@@ -62,6 +68,7 @@ class NetworkConfig(QWidget):
         self.layout_h1 = QHBoxLayout()  # 水平布局1
         self.label_players = QLabel("玩家列表：",self)
         self.refresh_btn = QPushButton("刷新",self)
+        self.refresh_btn.clicked.connect(self.refresh)
         self.layout_h1.addWidget(self.label_players)
         self.layout_h1.addWidget(self.refresh_btn)
 
@@ -74,7 +81,7 @@ class NetworkConfig(QWidget):
         self.list_widget.addItem(self.widget_item)
         self.widget_item = QListWidgetItem("3333",self.list_widget)
         self.list_widget.addItem(self.widget_item)
-        self.list_widget.itemDoubleClicked.connect(self.item_clicked)
+        self.list_widget.itemDoubleClicked.connect(self.item_double_clicked)
         self.layout_h2.addWidget(self.list_widget)
 
         self.layout_h3 = QHBoxLayout()  # 水平布局2
@@ -82,6 +89,7 @@ class NetworkConfig(QWidget):
         self.join_btn.clicked.connect(self.join)
         self.battle_btn = QPushButton("选择对战",self)
         self.battle_btn.clicked.connect(self.battle)
+        self.battle_btn.setEnabled(False)
         self.layout_h3.addWidget(self.join_btn)
         self.layout_h3.addWidget(self.battle_btn)
 
@@ -94,16 +102,24 @@ class NetworkConfig(QWidget):
         self.game_window = None
         self.is_join = False
 
-    def item_clicked(self,item):
+    def item_double_clicked(self,item):
         print(item)
         print(item.text())
+
+    def refresh(self):
+        data = {
+            "target":"server",
+            "msg":"refresh",
+            "data":""
+        }
+        self.sock.sendall((json.dumps(data)+" END").encode())
 
     def join(self):
         '''加入房间'''
         if not self.is_join:
             listwidget_item = QListWidgetItem(self.name_edit.text(),self.list_widget)
             self.list_widget.addItem(listwidget_item)
-            self.battle_btn.setEnabled(False)
+            self.battle_btn.setEnabled(True)
             self.name_edit.setEnabled(False)
             self.join_btn.setText("退出房间")
             self.is_join = True
@@ -113,7 +129,7 @@ class NetworkConfig(QWidget):
                 print(self.list_widget.item(i).text())
                 if self.list_widget.item(i).text() == self.name_edit.text():
                     self.list_widget.takeItem(i)
-            self.battle_btn.setEnabled(True)
+            self.battle_btn.setEnabled(False)
             self.name_edit.setEnabled(True)
             self.is_join = False
             self.join_btn.setText("加入房间")
@@ -126,6 +142,35 @@ class NetworkConfig(QWidget):
         # self.game_window.backSignal.connect(self.main_window.show)  # 返回
         # self.game_window.show()
         # self.close()
+
+    def deal_data(self,json_data):
+        '''数据处理'''
+        print("data in client: ",json_data)
+        if json_data['msg'] == 'player_list':
+            print(json_data['data'])
+            pass
+        elif json_data['msg'] == "????":
+            pass
+
+    def recv_data(self):
+        while True:
+            try:
+                res_data = recv_sockdata(self.sock)     # 本地收到数据
+                json_data = json.dumps(res_data)        # 转成json
+                self.deal_data(json_data)
+
+            except (ConnectionAbortedError,ConnectionResetError):
+                print("与服务器断开连接")
+                if self in players :
+                    players.remove(self)
+                break  # 退出循环，线程结束
+
+            except json.JSONDecodeError:
+                print("数据解析错误")
+                print("Error Data:",res_data)
+            # 在线程处理函数中不能直接进行界面的相关操作，所以用一个信号把数据发送出来
+            # self.dataSignal.emit(data)
+            # self.deal_data(data,parent)
 
 
 # class NetworkPlayer(BasePlayer):

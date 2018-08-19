@@ -524,3 +524,4 @@ class NetworkConfig(QWidget):
 #         self.chess_pos.raise_()
 
 
+

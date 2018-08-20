@@ -46,25 +46,33 @@ class NetworkConfig(QWidget):
     配置网络信息的窗体
     '''
 
+    # 传输数据的信号
+    dataSignal = pyqtSignal(dict, name='data')
+
     def __init__(self,main_window,parent=None):
         super().__init__(parent)
         self.setWindowTitle('网络配置')
         self.setWindowIcon(QIcon('source/icon.ico'))
         self.main_window = main_window
         # 启动网络
-        self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.sock.connect(addr)
+        try:
+            self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            self.sock.connect(addr)
+            threading.Thread(target=self.recv_data).start()
+            self.dataSignal.connect(self.deal_data)
+        except ConnectionRefusedError as e:
+            QMessageBox.information(self,"消息","连接服务器失败，程序即将退出")
+            raise e
 
         # 显示自己的昵称
         self.layout_h = QHBoxLayout()  # 水平布局1
         self.label_name = QLabel("昵称：",self)
         self.name_edit = QLineEdit(self)
-        self.name_edit.setText("玩家1")
+        self.name_edit.setText("未命名")
         self.layout_h.addWidget(self.label_name,1)
         self.layout_h.addWidget(self.name_edit,3)
 
         # 玩家列表文字：
-        # 显示自己的昵称
         self.layout_h1 = QHBoxLayout()  # 水平布局1
         self.label_players = QLabel("玩家列表：",self)
         self.refresh_btn = QPushButton("刷新",self)
@@ -72,15 +80,10 @@ class NetworkConfig(QWidget):
         self.layout_h1.addWidget(self.label_players)
         self.layout_h1.addWidget(self.refresh_btn)
 
-        # 输入对方IP进行连接， 或者选择自己是主机
+        # 加载玩家列表
         self.layout_h2 = QHBoxLayout()  # 水平布局1
         self.list_widget = QListWidget()
-        self.widget_item = QListWidgetItem("1111",self.list_widget)
-        self.list_widget.addItem(self.widget_item)
-        self.widget_item = QListWidgetItem("2222",self.list_widget)
-        self.list_widget.addItem(self.widget_item)
-        self.widget_item = QListWidgetItem("3333",self.list_widget)
-        self.list_widget.addItem(self.widget_item)
+        self.refresh()  #  发送消息刷新用户列表
         self.list_widget.itemDoubleClicked.connect(self.item_double_clicked)
         self.layout_h2.addWidget(self.list_widget)
 
@@ -145,10 +148,15 @@ class NetworkConfig(QWidget):
 
     def deal_data(self,json_data):
         '''数据处理'''
-        print("data in client: ",json_data)
+        # print("data in client: ",json_data)
         if json_data['msg'] == 'player_list':
-            print(json_data['data'])
-            pass
+            # print(json_data['data'])
+            self.list_widget.clear()
+            for name in json_data['data']:
+                self.widget_item = QListWidgetItem(name, self.list_widget)
+                self.list_widget.addItem(self.widget_item)
+        if json_data['msg'] == 'get_name':  # 收到服务器分配的用户名
+            self.name_edit.setText(json_data['data'])
         elif json_data['msg'] == "????":
             pass
 
@@ -156,21 +164,19 @@ class NetworkConfig(QWidget):
         while True:
             try:
                 res_data = recv_sockdata(self.sock)     # 本地收到数据
-                json_data = json.dumps(res_data)        # 转成json
-                self.deal_data(json_data)
+                json_data = json.loads(res_data)        # json转成字典
+                # 在线程处理函数中不能直接进行界面的相关操作，所以用一个信号把数据发送出来
+                self.dataSignal.emit(json_data)
+                # self.deal_data(json_data,parent)
 
             except (ConnectionAbortedError,ConnectionResetError):
                 print("与服务器断开连接")
-                if self in players :
-                    players.remove(self)
                 break  # 退出循环，线程结束
 
             except json.JSONDecodeError:
                 print("数据解析错误")
                 print("Error Data:",res_data)
-            # 在线程处理函数中不能直接进行界面的相关操作，所以用一个信号把数据发送出来
-            # self.dataSignal.emit(data)
-            # self.deal_data(data,parent)
+
 
 
 # class NetworkPlayer(BasePlayer):

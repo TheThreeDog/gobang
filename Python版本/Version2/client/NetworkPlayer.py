@@ -17,7 +17,7 @@ from Base import BasePlayer
 from TDWidgets import TDPushButton
 import Base
 
-addr = ("127.0.0.1",3003)
+addr = ("www.threedog.top",3003)
 
 chessboard = Base.chessboard
 # 列表记录走棋坐标，用于悔棋操作
@@ -49,6 +49,8 @@ class NetworkConfig(QWidget):
 
     # 传输数据的信号
     dataSignal = pyqtSignal(dict, name='data')
+    #  连接中断的信号
+    disconnectSignal = pyqtSignal()
 
     def __init__(self,main_window,parent=None):
         super().__init__(parent)
@@ -64,6 +66,7 @@ class NetworkConfig(QWidget):
         try:
             self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             self.sock.connect(addr)
+            self.is_connected = True
             threading.Thread(target=self.recv_data).start()
             self.dataSignal.connect(self.deal_data)
         except ConnectionRefusedError as e:
@@ -108,6 +111,7 @@ class NetworkConfig(QWidget):
         self.layout_main.addLayout(self.layout_h2)
         self.layout_main.addLayout(self.layout_h3)
         self.setLayout(self.layout_main)
+        self.disconnectSignal.connect(self.dis_connect)
 
     def item_double_clicked(self,item):
         if not self.is_join:
@@ -199,6 +203,11 @@ class NetworkConfig(QWidget):
                 else :
                     QMessageBox.information(self,"提示",json_data['info'])
 
+    def dis_connect(self):
+        QMessageBox.information(self,"提示","与服务器断开连接，即将返回主界面")
+        self.is_connected = False
+        self.close()
+
     def recv_data(self):
         while self.keep_recv:
             try:
@@ -210,6 +219,7 @@ class NetworkConfig(QWidget):
 
             except (ConnectionAbortedError,ConnectionResetError):
                 print("与服务器断开连接")
+                self.disconnectSignal.emit()
                 break  # 退出循环，线程结束
 
             except json.JSONDecodeError:
@@ -217,12 +227,15 @@ class NetworkConfig(QWidget):
                 print("Error Data:",res_data)
 
     def closeEvent(self, a0: QCloseEvent):
-        data = {
-            "target": "server",
-            "msg": "quit"
-        }
-        self.keep_recv = False # 结束接收线程
-        self.sock.sendall((json.dumps(data) + " END").encode())
+        if self.is_connected:
+            data = {
+                "target": "server",
+                "msg": "quit"
+            }
+            self.keep_recv = False # 结束接收线程
+            self.sock.sendall((json.dumps(data) + " END").encode())
+        else:
+            self.main_window.show()
         super().closeEvent(a0)
 
 
@@ -590,7 +603,7 @@ class NetworkPlayer(BasePlayer):
             return
         if not self.is_connected:
             return
-        else :
+        else:
             data = {"msg": "action", "data": "cuicu","target":"player"}
             self.tcp_socket.sendall((json.dumps(data) + " END").encode())
             # self.label_statuvalue.setText("请求(重新)开始")

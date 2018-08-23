@@ -19,6 +19,9 @@ def recv_sockdata(the_socket):
             total_data += data[:data.index("END")]
             break
         total_data += data
+        # 如果超过了一定数量仍然没有检测到END，说明之前的数据全部失效
+        if len(total_data) >= 10240:
+            total_data = ""
     return total_data
 
 

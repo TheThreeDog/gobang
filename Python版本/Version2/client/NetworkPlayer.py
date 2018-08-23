@@ -17,8 +17,8 @@ from Base import BasePlayer
 from TDWidgets import TDPushButton
 import Base
 
-addr = ("www.threedog.top",3003)
-
+# addr = ("www.threedog.top",3003)
+addr = ('127.0.0.1',3003)
 chessboard = Base.chessboard
 # 列表记录走棋坐标，用于悔棋操作
 history = []
@@ -116,8 +116,8 @@ class NetworkConfig(QWidget):
     def item_double_clicked(self,item):
         if not self.is_join:
             return  # 如果没有加入房间， 双击无效
-        print(item)
-        print(item.text())
+        # print(item)
+        # print(item.text())
         data = {
             "target": "server",
             "msg": "battle",
@@ -143,7 +143,7 @@ class NetworkConfig(QWidget):
                 "msg": "join",
                 "data": self.name_edit.text().strip()
             }
-            print(self.name_edit.text())
+            # print(self.name_edit.text())
             self.sock.sendall((json.dumps(data) + " END").encode())
             self.battle_btn.setEnabled(True)
             self.name_edit.setEnabled(False)
@@ -218,12 +218,12 @@ class NetworkConfig(QWidget):
                 # self.deal_data(json_data,parent)
 
             except (ConnectionAbortedError,ConnectionResetError):
-                print("与服务器断开连接")
+                # print("与服务器断开连接")
                 self.disconnectSignal.emit()
                 break  # 退出循环，线程结束
 
             except json.JSONDecodeError:
-                print("数据解析错误")
+                # print("数据解析错误")
                 print("Error Data:",res_data)
 
     def closeEvent(self, a0: QCloseEvent):
@@ -342,12 +342,12 @@ class NetworkPlayer(BasePlayer):
                     # self.label_statuvalue.setText("等待开始")
 
             if data['data'] == 'cuicu':
-                print(self.is_connected)
+                # print(self.is_connected)
                 if not self.is_connected:
                     return
                 if self.is_over :
                     return
-                print("cuicu")
+                # print("cuicu")
                 sound.play()
                 # pygame.mixer.music.load("source/luozisheng.wav")
 
@@ -356,16 +356,18 @@ class NetworkPlayer(BasePlayer):
 
             if data['data'] == 'exit':
                 # 对方退出游戏  回到游戏大厅
+                print("receive exit!!!")
+                self.keep_connect = False
                 QMessageBox.information(self,"消息","对方退出游戏对局，即将返回游戏主界面")
                 self.back()
                 # self.is_connected = False
                 # self.is_listening = False
                 # self.tcp_socket.close()
                 # self.tcp_socket = None
-            print(data)
+            # print(data)
 
         elif data['msg'] == 'position':
-            print(data['data'])
+            # print(data['data'])
             # 在对应位置落子
             pos = data['data']
             if chessboard[pos[1]][pos[0]] is not None:
@@ -435,13 +437,15 @@ class NetworkPlayer(BasePlayer):
 
     def recv_data(self,sock,addr):
         self.is_connected = True  # 连接状态
-        print("start receiving data ...")
+        # print("start receiving data ...")
         while self.keep_connect:
-            print("start receiving data ...")
+            # print("start receiving data ...")
             try:
                 res_data = recv_sockdata(sock)
             except (ConnectionAbortedError,ConnectionResetError):
-                print("与服务器连接断开")
+                if self.keep_connect == False:
+                    break
+                # print("与服务器连接断开")
                 # QMessageBox.information(self, "消息", "与服务器断开连接，即将退回到主界面")
                 # QMessageBox.information(self,"提示","对方已经断开连接")
                 self.is_connected = False
@@ -451,7 +455,7 @@ class NetworkPlayer(BasePlayer):
                 break
             try:
                 data = json.loads(res_data)
-                print(type(data))
+                # print(type(data))
                 # 在线程处理函数中不能直接进行界面的相关操作，所以用一个信号把数据发送出来
                 self.dataSignal.emit(data)
             except json.decoder.JSONDecodeError as e:
@@ -466,6 +470,7 @@ class NetworkPlayer(BasePlayer):
     def closeEvent(self, a0: QCloseEvent):
         self.keep_connect = False
         if self.tcp_socket is not None and self.is_connected == True:
+            print("???")
             self.tcp_socket.sendall((json.dumps({"msg":"action","data":"exit","target":"player"})+" END").encode())
             self.tcp_socket.close()
 
@@ -492,7 +497,7 @@ class NetworkPlayer(BasePlayer):
         if self.is_over: # 如果游戏已经结束，点击失效
             return
         if not self.my_turn:
-            print("not my turn")
+            # print("not my turn")
             return
         # 如果点击在棋盘区域
         if a0.x() >= 50 and a0.x() <= 50+30*19 and a0.y() >= 50 and a0.y() <= 50+30*19:
@@ -614,5 +619,6 @@ class NetworkPlayer(BasePlayer):
         self.chess_pos.raise_()
 
     def __del__(self):
-        print("析构函数被执行")
+        # print("析构函数被执行")
+        pass
 

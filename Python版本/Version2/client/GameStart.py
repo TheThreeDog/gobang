@@ -80,3 +80,6 @@ if __name__ == '__main__':
     w.show()
     # w.setPalette(palette)
     sys.exit(app.exec_())
+
+
+

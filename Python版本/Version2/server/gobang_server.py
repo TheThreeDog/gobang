@@ -75,7 +75,7 @@ class Player(object):
 
     def deal_data(self,json_data):
         '''数据处理'''
-        print("data in server: ", json_data)
+        # print("data in server: ", json_data)
         if json_data['msg'] == 'refresh':  # 刷新玩家列表
             print("返回列表数据")
             data = {"msg": "player_list", "data": [player.name for player in get_player_in_room()]}
@@ -123,15 +123,15 @@ class Player(object):
             try:
                 res_data = recv_sockdata(self.sock)     # 本地收到数据
                 json_data = json.loads(res_data)        # 转成json
-                print(json_data)
+                # print(json_data)
                 if json_data['target'] == 'player':     # 目标是玩家
                     if self.target_sock is not None:
-                        print("data to player: ", json_data)
+                        # print("data to player: ", json_data)
                         self.target_sock.sendall((json.dumps(json_data)+" END").encode())  # 发送给另一玩家
                 elif json_data['target'] == 'server':   # 目标是服务器
                     self.deal_data(json_data)           # 交由本地解析器处理
 
-            except (ConnectionAbortedError,ConnectionResetError):
+            except (ConnectionAbortedError,ConnectionResetError,BrokenPipeError):
                 print("连接断开，玩家离开游戏")
                 if self in players :
                     players.remove(self)

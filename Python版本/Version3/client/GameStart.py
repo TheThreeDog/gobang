@@ -1,6 +1,11 @@
 # -*- coding:utf-8 -*-
 __author__ = 'Threedog'
 __Date__ = '2018/7/30 15:09'
+
+'''
+第三版本，实现TCP打洞模式的五子棋
+'''
+
 # 开启PyQt的Debug模式
 import cgitb
 cgitb.enable( format = 'error')

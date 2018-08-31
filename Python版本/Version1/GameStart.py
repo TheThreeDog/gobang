@@ -15,6 +15,7 @@ from SinglePlayer import SinglePlayer
 from DoublePlayer import DoublePlayer
 from NetworkPlayer import NetworkPlayer,NetworkConfig
 
+
 class MainWindow(QWidget):
     def __init__(self,parent=None):
         super().__init__(parent)

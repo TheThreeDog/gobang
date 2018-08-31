@@ -17,8 +17,8 @@ from Base import BasePlayer
 from TDWidgets import TDPushButton
 import Base
 
-addr = ("www.threedog.top",3003)
-# addr = ('127.0.0.1',3003)
+# addr = ("www.threedog.top",3003)
+addr = ('127.0.0.1',3003)
 chessboard = Base.chessboard
 # 列表记录走棋坐标，用于悔棋操作
 history = []

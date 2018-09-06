@@ -17,8 +17,8 @@ from Base import BasePlayer
 from TDWidgets import TDPushButton
 import Base
 
-addr = ("www.threedog.top",3003)
-# addr = ('127.0.0.1',3003)
+# addr = ("www.threedog.top",3003)
+addr = ('127.0.0.1',3003)
 chessboard = Base.chessboard
 # 列表记录走棋坐标，用于悔棋操作
 history = []
@@ -201,6 +201,9 @@ class NetworkConfig(QWidget):
                     self.close()
                 else :
                     QMessageBox.information(self,"提示",json_data['info'])
+
+        elif json_data['msg'] == 'get_addr':
+            print(json_data["data"])
 
     def dis_connect(self):
         QMessageBox.information(self,"提示","与服务器断开连接，即将返回主界面")
@@ -418,6 +421,7 @@ class NetworkPlayer(BasePlayer):
 
         elif data['msg'] == 'name':
             self.setWindowTitle('与 {} 对战中'.format(data['data']))
+        # {"msg": "self_addr", "data": sock.getpeername()}
 
     def restart_func(self):
         # 清空所有棋子

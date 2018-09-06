@@ -72,7 +72,7 @@ class NetworkConfig(QWidget):
         self.layout_h2.addWidget(self.connect_btn)
         self.layout_h2.addWidget(self.listen_btn)
 
-        self.layout_main = QVBoxLayout() # 整体垂直布局
+        self.layout_main = QVBoxLayout()  # 整体垂直布局
         self.layout_main.addLayout(self.layout_h)
         self.layout_main.addLayout(self.layout_h1)
         self.layout_main.addLayout(self.layout_h2)
@@ -203,6 +203,9 @@ class NetworkPlayer(BasePlayer):
                 # 对方退出游戏
                 self.is_connected = False
                 self.is_listening = False
+                # tcp_socket = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
+                # tcp_socket.shutdown(socket.SHUT_RDWR)
+                self.tcp_socket.shutdown(socket.SHUT_RDWR)
                 self.tcp_socket.close()
                 self.tcp_socket = None
             print(data)
@@ -298,6 +301,7 @@ class NetworkPlayer(BasePlayer):
             self.dataSignal.emit(data)
             # self.deal_data(data,parent)
         self.is_connected = False  # 连接断开
+        self.tcp_socket.shutdown(socket.SHUT_RDWR)
         self.tcp_socket.close()
 
     def closeEvent(self, a0: QCloseEvent):
@@ -499,9 +503,11 @@ class NetworkClient(NetworkPlayer):
     def closeEvent(self, a0: QCloseEvent):
         if self.is_connected:
             self.tcp_socket.sendall((json.dumps({"msg": "action", "data": "exit"})).encode())
+            self.tcp_socket.shutdown(socket.SHUT_RDWR)
             self.tcp_socket.close()
             self.is_connected = False
         if self.is_listening:
+            self.tcpServer.shutdown(socket.SHUT_RDWR)
             self.tcpServer.close()
             self.is_listening = False
         return super().closeEvent(a0)
@@ -540,6 +546,7 @@ class NetworkServer(NetworkPlayer):
                 self.label_statuvalue.setText("等待连接")
                 # 接受一个新连接:
                 sock, addr = self.tcpServer.accept()
+
                 self.label_statuvalue.setText("连接成功,\n点击开始")
                 # self.is_listening = False
                 self.tcp_socket = sock
@@ -581,6 +588,7 @@ class NetworkServer(NetworkPlayer):
     def closeEvent(self, a0: QCloseEvent):
         if self.is_connected:
             self.tcp_socket.sendall((json.dumps({"msg": "action", "data": "exit"})).encode())
+            self.tcp_socket.shutdown(socket.SHUT_RDWR)
             self.tcp_socket.close()
             self.is_connected = False
         if self.is_listening:

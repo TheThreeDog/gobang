@@ -67,6 +67,16 @@ class Player(object):
 
     def __init__(self,sock,name):
         self.sock = sock  # 本地的sock
+        # sock = socket.socket(socket.AF_INET,socket.AF_INET)
+        print(sock.getpeername())
+        # 向客户端发送本地IP，端口号
+        data = {
+            "msg":"get_addr",
+            "data":{
+                "self_addr":sock.getpeername()
+            }
+        }
+        self.sock.sendall((json.dumps(data) + " END").encode())
         self.name = name
         self.target_sock = None  # 联机对方的sock
         self.state = False  # 默认情况下没有加入到列表中

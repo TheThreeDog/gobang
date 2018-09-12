@@ -69,6 +69,9 @@ class Player(object):
         self.sock = sock  # 本地的sock
         # sock = socket.socket(socket.AF_INET,socket.AF_INET)
         print(sock.getpeername())
+        self.target_player = None
+        self.addr = sock.getpeername()
+        self.target_addr = None
         # 向客户端发送本地IP，端口号
         data = {
             "msg":"get_addr",
@@ -102,12 +105,15 @@ class Player(object):
             target_player = get_player_by_name(json_data['data'])
             if target_player:
                 self.target_sock = target_player.sock
+                self.target_player = target_player
+                self.target_addr = self.target_player.sock.getpeername()
                 # 发给对手
-                data = {"msg": "replay", "type": "battle", "data": True,"name":self.name}
+                data = {"msg": "replay", "type": "battle", "data": self.addr,"name":self.name}
                 self.target_sock.sendall((json.dumps(data) + " END").encode())
                 # 发给发起方
-                data = {"msg": "replay", "type": "battle", "data": True,"name": target_player.name}
+                data = {"msg": "replay", "type": "battle", "data": self.target_addr,"name": target_player.name}
                 target_player.target_sock = self.sock
+                target_player.target_player = self
                 self.sock.sendall((json.dumps(data) + " END").encode())
             else:
                 data = {"msg": "replay", "type": "battle", "data": False,"info":"对局创建失败，对方可能已经离线，请刷新列表后重试"}

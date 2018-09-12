@@ -65,6 +65,8 @@ class NetworkConfig(QWidget):
         # 启动网络
         try:
             self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            # 设置端口复用
+            self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             self.sock.connect(addr)
             self.is_connected = True
             threading.Thread(target=self.recv_data).start()
@@ -192,15 +194,21 @@ class NetworkConfig(QWidget):
                 self.join_btn.setText("加入房间")
 
             if json_data['type'] == 'battle':  # 对战
-                if json_data['data'] == True:
+                print(json_data)
+                addr = tuple(json_data['data'])# 将数据转成元祖
+                # self.sock.close()
+
+                self.sock.connect(addr)
+                # if json_data['data'] == True:
+
                     # 进入对战模式
-                    self.game_window = NetworkPlayer(sock=self.sock,name=json_data['name'])
-                    self.game_window.backSignal.connect(self.main_window.show)  # 点击后退按钮触发的信号
-                    self.game_window.exitSignal.connect(self.main_window.game_over)  # 如果程序退出，触发的信号
-                    self.game_window.show()
-                    self.close()
-                else :
-                    QMessageBox.information(self,"提示",json_data['info'])
+                    # self.game_window = NetworkPlayer(sock=self.sock,name=json_data['name'])
+                    # self.game_window.backSignal.connect(self.main_window.show)  # 点击后退按钮触发的信号
+                    # self.game_window.exitSignal.connect(self.main_window.game_over)  # 如果程序退出，触发的信号
+                    # self.game_window.show()
+                    # self.close()
+                # else :
+                #     QMessageBox.information(self,"提示",json_data['info'])
 
         elif json_data['msg'] == 'get_addr':
             print(json_data["data"])

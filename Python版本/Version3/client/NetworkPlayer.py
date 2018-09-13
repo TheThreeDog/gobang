@@ -64,12 +64,14 @@ class NetworkConfig(QWidget):
 
         # 启动网络
         try:
-            self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            # 设置端口复用
-            self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-            self.sock.connect(addr)
+            self.sock2 = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
+            self.sock1 = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            # # 设置端口复用
+            self.sock1.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            self.sock2.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            self.sock1.connect(addr)
             self.is_connected = True
-            threading.Thread(target=self.recv_data).start()
+            threading.Thread(target=self.recv_data,args=(self.sock1,)).start()
             self.dataSignal.connect(self.deal_data)
         except ConnectionRefusedError as e:
             QMessageBox.information(self,"消息","连接服务器失败，程序即将退出")
@@ -125,7 +127,7 @@ class NetworkConfig(QWidget):
             "msg": "battle",
             "data": item.text()
         }
-        self.sock.sendall((json.dumps(data) + " END").encode())
+        self.sock1.sendall((json.dumps(data) + " END").encode())
 
     def refresh(self):
         data = {
@@ -133,7 +135,7 @@ class NetworkConfig(QWidget):
             "msg":"refresh",
             "data":""
         }
-        self.sock.sendall((json.dumps(data)+" END").encode())
+        self.sock1.sendall((json.dumps(data)+" END").encode())
 
     def join(self):
         '''加入房间'''
@@ -146,7 +148,7 @@ class NetworkConfig(QWidget):
                 "data": self.name_edit.text().strip()
             }
             # print(self.name_edit.text())
-            self.sock.sendall((json.dumps(data) + " END").encode())
+            self.sock1.sendall((json.dumps(data) + " END").encode())
             self.battle_btn.setEnabled(True)
             self.name_edit.setEnabled(False)
             self.join_btn.setText("退出房间")
@@ -158,7 +160,7 @@ class NetworkConfig(QWidget):
                 "msg": "quit"
                 # "data": self.name_edit.text()
             }
-            self.sock.sendall((json.dumps(data) + " END").encode())
+            self.sock1.sendall((json.dumps(data) + " END").encode())
             self.battle_btn.setEnabled(False)
             self.name_edit.setEnabled(True)
             self.is_join = False
@@ -171,9 +173,10 @@ class NetworkConfig(QWidget):
             "msg": "battle",
             "data": self.list_widget.currentItem().text()
         }
-        self.sock.sendall((json.dumps(data) + " END").encode())
+        self.sock1.sendall((json.dumps(data) + " END").encode())
 
     def deal_data(self,json_data):
+        print("data in client :",json_data)
         '''数据处理'''
         if json_data['msg'] == 'player_list':
             # print(json_data['data'])
@@ -184,6 +187,7 @@ class NetworkConfig(QWidget):
 
         elif json_data['msg'] == 'get_name':  # 收到服务器分配的用户名
             self.name_edit.setText(json_data['data'])
+            self.name = self.name_edit.text()
 
         elif json_data['msg'] == "replay":
             if json_data['type'] == 'join':  # 加入游戏失败
@@ -195,10 +199,20 @@ class NetworkConfig(QWidget):
 
             if json_data['type'] == 'battle':  # 对战
                 print(json_data)
-                addr = tuple(json_data['data'])# 将数据转成元祖
-                # self.sock.close()
+                addr = tuple(json_data['data'])# 将数据（存放的是对方的地址）转成元祖
+                # self.sock1.close()
+                while True:
+                    try :
+                        print(addr)
+                        self.sock1.shutdown(socket.SHUT_RDWR)
+                        self.sock1.close()
+                        self.sock1 = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
+                        self.sock1.connect(addr)
+                        break
+                    except Exception as e:
+                        print(e)
+                        pass
 
-                self.sock.connect(addr)
                 # if json_data['data'] == True:
 
                     # 进入对战模式
@@ -212,16 +226,37 @@ class NetworkConfig(QWidget):
 
         elif json_data['msg'] == 'get_addr':
             print(json_data["data"])
+            self.sock2.bind(tuple(json_data['data']['self_addr']))
+            print("start listen")
+            self.sock2.listen(1)
+            # 线程监听，等待连接
+            threading.Thread(target=self.start_listen,args=(self.sock2,)).start()
+
+    def start_listen(self,server_sock):
+        print("accepting!")
+        while True:
+            try:
+                # 接受一个新连接:
+                sock, addr = server_sock.accept()
+                self.tcp_socket = sock
+                # 连接成功后先向对方发送昵称信息
+                data = {"msg": "name", "data": self.name}
+                self.tcp_socket.sendall((json.dumps(data) + " END").encode())
+                # 启动一个死循环处理数据，如果对方断开连接，会进行循环监听下次一客户端的连接
+                self.recv_data(sock)
+            except OSError:
+                print("监听失败，socket已经失效")
+                break
 
     def dis_connect(self):
         QMessageBox.information(self,"提示","与服务器断开连接，即将返回主界面")
         self.is_connected = False
         self.close()
 
-    def recv_data(self):
+    def recv_data(self,sock):
         while self.keep_recv:
             try:
-                res_data = recv_sockdata(self.sock)     # 本地收到数据
+                res_data = recv_sockdata(sock)     # 本地收到数据
                 json_data = json.loads(res_data)        # json转成字典
                 # 在线程处理函数中不能直接进行界面的相关操作，所以用一个信号把数据发送出来
                 self.dataSignal.emit(json_data)
@@ -235,6 +270,8 @@ class NetworkConfig(QWidget):
             except json.JSONDecodeError:
                 # print("数据解析错误")
                 print("Error Data:",res_data)
+            except OSError:
+                break
 
     def closeEvent(self, a0: QCloseEvent):
         if self.is_connected:
@@ -243,7 +280,7 @@ class NetworkConfig(QWidget):
                 "msg": "quit"
             }
             self.keep_recv = False # 结束接收线程
-            self.sock.sendall((json.dumps(data) + " END").encode())
+            self.sock1.sendall((json.dumps(data) + " END").encode())
         else:
             self.main_window.show()
         super().closeEvent(a0)

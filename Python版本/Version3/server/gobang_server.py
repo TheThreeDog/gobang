@@ -72,14 +72,6 @@ class Player(object):
         self.target_player = None
         self.addr = sock.getpeername()
         self.target_addr = None
-        # 向客户端发送本地IP，端口号
-        data = {
-            "msg":"get_addr",
-            "data":{
-                "self_addr":sock.getpeername()
-            }
-        }
-        self.sock.sendall((json.dumps(data) + " END").encode())
         self.name = name
         self.target_sock = None  # 联机对方的sock
         self.state = False  # 默认情况下没有加入到列表中
@@ -173,12 +165,19 @@ def start_listen(server_sock):
             # 给新连接发送当前的列表信息
             data = {"msg":"player_list","data":[player.name for player in get_player_in_room()]}
             sock.sendall((json.dumps(data) + " END").encode())
-            print("current players:", str([player.name for player in players]))
-            print("current players in room:", str([player.name for player in get_player_in_room()]))
             name="玩家{}".format(len(players))
             player = Player(sock,name)
             players.append(player)
             data = { "msg": "get_name", "data": name}
+            sock.sendall((json.dumps(data) + " END").encode())
+            # 向客户端发送本地IP，端口号
+            data = {
+                "msg": "get_addr",
+                "data": {
+                    "self_addr": player.addr
+                }
+            }
+
             sock.sendall((json.dumps(data) + " END").encode())
 
         except OSError:

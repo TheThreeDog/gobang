@@ -117,6 +117,9 @@ class NetworkConfig(QWidget):
         self.setLayout(self.layout_main)
         self.disconnectSignal.connect(self.dis_connect)
 
+        data = {"target":"server",'msg':'get_addr','data':''}
+        self.sock1.sendall((json.dumps(data)+" END").encode())
+
     def item_double_clicked(self,item):
         if not self.is_join:
             return  # 如果没有加入房间， 双击无效
@@ -212,6 +215,8 @@ class NetworkConfig(QWidget):
                     except Exception as e:
                         print(e)
                         pass
+                print("连接已经建立")
+                self.sock1.sendall(json.dumps({"msg":"哈哈哈哈哈哈"}).encode())
 
                 # if json_data['data'] == True:
 
@@ -226,7 +231,7 @@ class NetworkConfig(QWidget):
 
         elif json_data['msg'] == 'get_addr':
             print(json_data["data"])
-            self.sock2.bind(tuple(json_data['data']['self_addr']))
+            self.sock2.bind(tuple(json_data['data']))
             print("start listen")
             self.sock2.listen(1)
             # 线程监听，等待连接

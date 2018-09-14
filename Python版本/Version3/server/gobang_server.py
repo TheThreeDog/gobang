@@ -68,7 +68,6 @@ class Player(object):
     def __init__(self,sock,name):
         self.sock = sock  # 本地的sock
         # sock = socket.socket(socket.AF_INET,socket.AF_INET)
-        print(sock.getpeername())
         self.target_player = None
         self.addr = sock.getpeername()
         self.target_addr = None
@@ -111,7 +110,7 @@ class Player(object):
                 data = {"msg": "replay", "type": "battle", "data": False,"info":"对局创建失败，对方可能已经离线，请刷新列表后重试"}
                 self.sock.sendall((json.dumps(data) + " END").encode())
 
-        elif json_data['msg'] == "join":  # 玩家加入房间
+        elif json_data['msg'] == 'join':  # 玩家加入房间
             print(json_data['data'])
             print([player.name for player in get_player_in_room()])
             if json_data['data'] in [player.name for player in get_player_in_room()]:
@@ -122,9 +121,17 @@ class Player(object):
             self.state = True
             broadcast_refresh()  # 向所有玩家广播列表数据
 
-        elif json_data['msg'] == "quit":  # 退出房间
+        elif json_data['msg'] == 'quit':  # 退出房间
             self.state = False
             broadcast_refresh()
+
+        elif json_data['msg'] == 'get_addr':
+            print(self.sock.getpeername())
+            data = {
+                "msg": "get_addr",
+                "data": self.sock.getpeername()
+            }
+            self.sock.sendall((json.dumps(data) + " END").encode())
 
     def recv_data(self):
         while True:
@@ -171,14 +178,7 @@ def start_listen(server_sock):
             data = { "msg": "get_name", "data": name}
             sock.sendall((json.dumps(data) + " END").encode())
             # 向客户端发送本地IP，端口号
-            data = {
-                "msg": "get_addr",
-                "data": {
-                    "self_addr": player.addr
-                }
-            }
 
-            sock.sendall((json.dumps(data) + " END").encode())
 
         except OSError:
             print("监听失败，socket已经失效")

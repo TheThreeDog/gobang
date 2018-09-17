@@ -47,10 +47,12 @@ class NetworkConfig(QWidget):
     配置网络信息的窗体
     '''
 
-    # 传输数据的信号
+    #  传输数据的信号
     dataSignal = pyqtSignal(dict, name='data')
     #  连接中断的信号
     disconnectSignal = pyqtSignal()
+    #  P2P连接建立成功的信号
+    p2pconnectSignal = pyqtSignal()
 
     def __init__(self,main_window,parent=None):
         super().__init__(parent)
@@ -61,6 +63,7 @@ class NetworkConfig(QWidget):
         self.game_window = None
         self.is_join = False
         self.keep_recv = True
+        self.addr = {} # 自己的外网IP和端口号
 
         # 启动网络
         try:
@@ -116,6 +119,7 @@ class NetworkConfig(QWidget):
         self.layout_main.addLayout(self.layout_h3)
         self.setLayout(self.layout_main)
         self.disconnectSignal.connect(self.dis_connect)
+        self.p2pconnectSignal.connect(self.p2pConnect)
 
         data = {"target":"server",'msg':'get_addr','data':''}
         self.sock1.sendall((json.dumps(data)+" END").encode())
@@ -201,41 +205,63 @@ class NetworkConfig(QWidget):
                 self.join_btn.setText("加入房间")
 
             if json_data['type'] == 'battle':  # 对战
-                print(json_data)
-                addr = tuple(json_data['data'])# 将数据（存放的是对方的地址）转成元祖
-                # self.sock1.close()
-                while True:
-                    try :
-                        print(addr)
-                        self.sock1.shutdown(socket.SHUT_RDWR)
-                        self.sock1.close()
-                        self.sock1 = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
-                        self.sock1.connect(addr)
-                        break
-                    except Exception as e:
-                        print(e)
-                        pass
-                print("连接已经建立")
-                self.sock1.sendall(json.dumps({"msg":"哈哈哈哈哈哈"}).encode())
-
-                # if json_data['data'] == True:
-
+                # 这里要分主动连接还是被动连接。
+                if json_data['method'] == 'client':
+                    print("enter the peer to peer client mode !")
+                    addr = tuple(json_data['data'])  # 将数据（存放的是对方的地址）转成元祖
+                    # self.sock1.close()
+                    while True:
+                        try :
+                            print(addr)
+                            self.sock1.sendall((json.dumps({"msg": "exit","target":"server"}) + " END").encode())
+                            self.sock1.shutdown(socket.SHUT_RDWR)
+                            self.sock1.close()
+                            self.sock1 = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
+                            self.sock1.connect(addr)
+                            break
+                        except Exception as e:
+                            print(e)
+                            continue
+                    print("连接已经建立")
+                    self.sock1.sendall((json.dumps({"msg":"name","data":self.name})+" END").encode())
                     # 进入对战模式
-                    # self.game_window = NetworkPlayer(sock=self.sock,name=json_data['name'])
-                    # self.game_window.backSignal.connect(self.main_window.show)  # 点击后退按钮触发的信号
-                    # self.game_window.exitSignal.connect(self.main_window.game_over)  # 如果程序退出，触发的信号
-                    # self.game_window.show()
-                    # self.close()
+                    self.game_window = NetworkPlayer(sock=self.sock1, name='敌方')
+                    self.game_window.backSignal.connect(self.main_window.show)  # 点击后退按钮触发的信号
+                    self.game_window.exitSignal.connect(self.main_window.game_over)  # 如果程序退出，触发的信号
+                    self.game_window.show()
+                    self.close()
+
+                elif json_data['method'] == 'server':
+                    self.sock1.sendall((json.dumps({"msg":"exit","target":"server"})+" END").encode())
+                    self.sock1.shutdown(socket.SHUT_RDWR)
+                    self.sock1.close()
+                    print("enter the peer to peer server mode !")
+                    self.sock2.bind(("0.0.0.0",int(self.addr['port'])))
+                    print("start listen")
+                    self.sock2.listen(1)
+                    # 线程监听，等待连接
+                    threading.Thread(target=self.start_listen,args=(self.sock2,)).start()
+
+                    # if json_data['data'] == True:
                 # else :
                 #     QMessageBox.information(self,"提示",json_data['info'])
 
         elif json_data['msg'] == 'get_addr':
-            print(json_data["data"])
-            self.sock2.bind(tuple(json_data['data']))
-            print("start listen")
-            self.sock2.listen(1)
-            # 线程监听，等待连接
-            threading.Thread(target=self.start_listen,args=(self.sock2,)).start()
+            self.addr['ip'] = json_data['data'][0]
+            self.addr['port'] = json_data['data'][1]
+
+    def p2pConnect(self):
+        '''
+        作为p2p的服务端接收到信号
+        :return:
+        '''
+        # 进入对战模式
+        self.game_window = NetworkPlayer(sock=self.tcp_socket, name="敌方")
+        self.game_window.backSignal.connect(self.main_window.show)  # 点击后退按钮触发的信号
+        self.game_window.exitSignal.connect(self.main_window.game_over)  # 如果程序退出，触发的信号
+        self.game_window.show()
+        self.close()
+        self.tcp_socket.sendall((json.dumps({"msg": "name", "data": self.name}) + " END").encode())
 
     def start_listen(self,server_sock):
         print("accepting!")
@@ -245,10 +271,13 @@ class NetworkConfig(QWidget):
                 sock, addr = server_sock.accept()
                 self.tcp_socket = sock
                 # 连接成功后先向对方发送昵称信息
-                data = {"msg": "name", "data": self.name}
-                self.tcp_socket.sendall((json.dumps(data) + " END").encode())
-                # 启动一个死循环处理数据，如果对方断开连接，会进行循环监听下次一客户端的连接
-                self.recv_data(sock)
+                # data = {"msg": "吼吼吼吼吼吼"}
+                # 发送信号， 打开新界面
+                self.p2pconnectSignal.emit()
+
+                break
+                # self.tcp_socket.sendall((json.dumps(data) + " END").encode())
+
             except OSError:
                 print("监听失败，socket已经失效")
                 break

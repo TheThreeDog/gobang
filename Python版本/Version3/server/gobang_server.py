@@ -99,10 +99,10 @@ class Player(object):
                 self.target_player = target_player
                 self.target_addr = self.target_player.sock.getpeername()
                 # 发给对手
-                data = {"msg": "replay", "type": "battle", "data": self.addr,"name":self.name}
+                data = {"msg": "replay", "type": "battle", "data": self.addr,'method':'server',"name":self.name}
                 self.target_sock.sendall((json.dumps(data) + " END").encode())
                 # 发给发起方
-                data = {"msg": "replay", "type": "battle", "data": self.target_addr,"name": target_player.name}
+                data = {"msg": "replay", "type": "battle", "data": self.target_addr,'method':'client',"name": target_player.name}
                 target_player.target_sock = self.sock
                 target_player.target_player = self
                 self.sock.sendall((json.dumps(data) + " END").encode())
@@ -124,6 +124,16 @@ class Player(object):
         elif json_data['msg'] == 'quit':  # 退出房间
             self.state = False
             broadcast_refresh()
+
+        elif json_data['msg'] == 'exit': # 断开连接
+            print("连接断开，玩家离开游戏")
+            if self in players:
+                self.sock.shutdown(socket.SHUT_RDWR)
+                self.sock.close()
+                players.remove(self)
+                broadcast_refresh()
+                print("current players:", str([player.name for player in players]))
+                print("current players in room:", str([player.name for player in get_player_in_room()]))
 
         elif json_data['msg'] == 'get_addr':
             print(self.sock.getpeername())
@@ -158,6 +168,9 @@ class Player(object):
             except json.JSONDecodeError:
                 print("数据解析错误")
                 print("Error Data:",res_data)
+            except OSError:
+                print("玩家断开连接，尝试在非套接字上尝试了一个操作")
+                break
             # 在线程处理函数中不能直接进行界面的相关操作，所以用一个信号把数据发送出来
             # self.dataSignal.emit(data)
             # self.deal_data(data,parent)

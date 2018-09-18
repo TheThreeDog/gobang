@@ -121,9 +121,6 @@ class NetworkConfig(QWidget):
         self.disconnectSignal.connect(self.dis_connect)
         self.p2pconnectSignal.connect(self.p2pConnect)
 
-        data = {"target":"server",'msg':'get_addr','data':''}
-        self.sock1.sendall((json.dumps(data)+" END").encode())
-
     def item_double_clicked(self,item):
         if not self.is_join:
             return  # 如果没有加入房间， 双击无效
@@ -142,6 +139,8 @@ class NetworkConfig(QWidget):
             "msg":"refresh",
             "data":""
         }
+        self.sock1.sendall((json.dumps(data)+" END").encode())
+        data = {"target":"server",'msg':'get_addr','data':''}
         self.sock1.sendall((json.dumps(data)+" END").encode())
 
     def join(self):
@@ -218,12 +217,12 @@ class NetworkConfig(QWidget):
                             self.sock1.close()
                             self.sock1 = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
                             self.sock1.connect(addr)
+                            # self.sock1.sendall((json.dumps({"msg": "name", "data": self.name, "target": "player"}) + " END").encode())
                             break
                         except Exception as e:
                             print(e)
                             continue
                     print("连接已经建立")
-                    self.sock1.sendall((json.dumps({"msg":"name","data":self.name})+" END").encode())
                     # 进入对战模式
                     self.game_window = NetworkPlayer(sock=self.sock1, name='敌方')
                     self.game_window.backSignal.connect(self.main_window.show)  # 点击后退按钮触发的信号
@@ -235,7 +234,9 @@ class NetworkConfig(QWidget):
                     self.sock1.sendall((json.dumps({"msg":"exit","target":"server"})+" END").encode())
                     self.sock1.shutdown(socket.SHUT_RDWR)
                     self.sock1.close()
+                    self.sock1 = None
                     print("enter the peer to peer server mode !")
+                    print(self.addr)
                     self.sock2.bind(("0.0.0.0",int(self.addr['port'])))
                     print("start listen")
                     self.sock2.listen(1)
@@ -261,7 +262,7 @@ class NetworkConfig(QWidget):
         self.game_window.exitSignal.connect(self.main_window.game_over)  # 如果程序退出，触发的信号
         self.game_window.show()
         self.close()
-        self.tcp_socket.sendall((json.dumps({"msg": "name", "data": self.name}) + " END").encode())
+        self.tcp_socket.sendall((json.dumps({"msg": "name", "data": self.name,"target":"player"}) + " END").encode())
 
     def start_listen(self,server_sock):
         print("accepting!")
@@ -314,7 +315,10 @@ class NetworkConfig(QWidget):
                 "msg": "quit"
             }
             self.keep_recv = False # 结束接收线程
-            self.sock1.sendall((json.dumps(data) + " END").encode())
+            if self.sock1 is not None:
+                self.sock1.sendall((json.dumps(data) + " END").encode())
+                self.sock1.sendall(
+                    (json.dumps({"msg": "name", "data": self.name, "target": "player"}) + " END").encode())
         else:
             self.main_window.show()
         super().closeEvent(a0)
@@ -378,7 +382,7 @@ class NetworkPlayer(BasePlayer):
         '''
         对收到的数据进行处理
         '''
-        print(data)
+        print("data in game window :",data)
         if data['msg'] == 'action':
 
             if data['data'] == 'restart':

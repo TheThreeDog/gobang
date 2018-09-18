@@ -136,7 +136,7 @@ class Player(object):
                 print("current players in room:", str([player.name for player in get_player_in_room()]))
 
         elif json_data['msg'] == 'get_addr':
-            print(self.sock.getpeername())
+            print("return addr ",self.sock.getpeername())
             data = {
                 "msg": "get_addr",
                 "data": self.sock.getpeername()

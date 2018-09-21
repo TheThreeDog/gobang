@@ -134,13 +134,12 @@ class NetworkConfig(QWidget):
         self.sock1.sendall((json.dumps(data) + " END").encode())
 
     def refresh(self):
+        print("refresh")
         data = {
             "target":"server",
             "msg":"refresh",
             "data":""
         }
-        self.sock1.sendall((json.dumps(data)+" END").encode())
-        data = {"target":"server",'msg':'get_addr','data':''}
         self.sock1.sendall((json.dumps(data)+" END").encode())
 
     def join(self):
@@ -159,6 +158,7 @@ class NetworkConfig(QWidget):
             self.name_edit.setEnabled(False)
             self.join_btn.setText("退出房间")
             self.is_join = True
+            self.refresh()
         else:
             # 退出房间
             data = {
@@ -194,6 +194,8 @@ class NetworkConfig(QWidget):
         elif json_data['msg'] == 'get_name':  # 收到服务器分配的用户名
             self.name_edit.setText(json_data['data'])
             self.name = self.name_edit.text()
+            data = {"target": "server", 'msg': 'get_addr', 'data': ''}
+            self.sock1.sendall((json.dumps(data) + " END").encode())
 
         elif json_data['msg'] == "replay":
             if json_data['type'] == 'join':  # 加入游戏失败
@@ -204,6 +206,9 @@ class NetworkConfig(QWidget):
                 self.join_btn.setText("加入房间")
 
             if json_data['type'] == 'battle':  # 对战
+                if json_data['data'] == False:
+                    QMessageBox.information(self, "消息", "不能选自自己为对手")
+                    return
                 # 这里要分主动连接还是被动连接。
                 if json_data['method'] == 'client':
                     print("enter the peer to peer client mode !")
@@ -248,6 +253,7 @@ class NetworkConfig(QWidget):
                 #     QMessageBox.information(self,"提示",json_data['info'])
 
         elif json_data['msg'] == 'get_addr':
+            print("get addr !!!!!!!!!!!!!!!!")
             self.addr['ip'] = json_data['data'][0]
             self.addr['port'] = json_data['data'][1]
 
@@ -375,7 +381,7 @@ class NetworkPlayer(BasePlayer):
         self.disconnectSignal.connect(self.dis_connect)
 
     def dis_connect(self):
-        QMessageBox.information(self,"提示","与服务器断开连接，即将返回主界面")
+        QMessageBox.information(self,"提示","对方退出游戏，连接断开，即将返回主界面")
         self.back()
 
     def deal_data(self,data):
@@ -557,7 +563,7 @@ class NetworkPlayer(BasePlayer):
         self.keep_connect = False
         if self.tcp_socket is not None and self.is_connected == True:
             print("???")
-            self.tcp_socket.sendall((json.dumps({"msg":"action","data":"exit","target":"player"})+" END").encode())
+            # self.tcp_socket.sendall((json.dumps({"msg":"action","data":"exit","target":"player"})+" END").encode())
             self.tcp_socket.close()
 
         return super().closeEvent(a0)
@@ -586,8 +592,7 @@ class NetworkPlayer(BasePlayer):
             # print("not my turn")
             return
         # 如果点击在棋盘区域
-        if a0.x() >= 50 and a0.x() <= 50+30*19 and a0.y() >= 50 and a0.y() <= 50+30*19:
-
+        if a0.x() >= 50 and a0.x() <= 50 + 30 * 19 and a0.y() >= 50 and a0.y() <= 50 + 30 * 19:
             # 讲像素坐标转化成棋盘坐标，判断棋盘此位置是否为空
             pos = trans_pos(a0)
             if chessboard[pos[1]][pos[0]] is not None:
